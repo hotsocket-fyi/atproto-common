@@ -11,6 +11,17 @@
 		"useTabs": true,
 		"lineWidth": 120
 	},
+	"lint": {
+		"rules": {
+			"tags": [
+				"recommended",
+				"jsr"
+			],
+			"include": [
+				"explicit-function-return-type"
+			]
+		}
+	},
 	"compilerOptions": {
 		"lib": [
 			"deno.window"

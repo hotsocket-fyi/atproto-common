@@ -15,6 +15,12 @@ export type XError = {
 	message?: string;
 };
 
+type SoftRef = {
+	repo: string;
+	collection: string;
+	rkey: string;
+};
+
 // full:   "at://" AUTHORITY [ PATH ] [ "?" QUERY ] [ "#" FRAGMENT ]
 // actual: "at://" AUTHORITY [ "/" COLLECTION [ "/" RKEY ] ]
 /** {@link URL}-like at:// URI thing */
@@ -24,11 +30,11 @@ export class AtURI implements Stringifiable {
 	rkey!: string;
 
 	/** Convenience method that returns a repo/collection/rkey object for certain XRPC endpoints */
-	softRef() {
+	softRef(): SoftRef {
 		return {
 			repo: this.authority,
-			collection: this.authority,
-			rkey: this.rkey,
+			collection: this.authority!,
+			rkey: this.rkey!,
 		};
 	}
 
