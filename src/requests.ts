@@ -1,12 +1,20 @@
-import { XError } from "./lib.ts";
-import { Serializable, SerializableParams } from "./types.ts";
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
 
-export async function query<T>({ method, service, parameters, headers }: {
+import type { XError } from "./lib.ts";
+import type { Serializable, SerializableObject, SerializableParams } from "./types.ts";
+import { Err, Ok, type Result } from "@hotsocket/dhmo";
+
+/** {@link https://atproto.com/specs/xrpc XRPC} query. (HTTP GET request) */
+export async function query<T extends SerializableObject>({ method, service, parameters, headers }: {
 	method: string;
 	service: URL;
 	headers?: Headers;
 	parameters?: SerializableParams;
-}): Promise<T | XError> {
+}): Promise<Result<T | Blob, XError>> {
 	const requestURL = new URL(`/xrpc/${method}`, service);
 	if (parameters) {
 		const usp = new URLSearchParams();
@@ -21,9 +29,19 @@ export async function query<T>({ method, service, parameters, headers }: {
 	const opts: RequestInit = {};
 	if (headers) opts.headers = headers;
 	const rsp = await fetch(requestURL, opts);
-	return (await rsp.json()) as T | XError;
+	if (rsp.headers.get("Content-Type") != "application/json") {
+		return Ok(await rsp.blob());
+	} else {
+		const data = await rsp.json();
+		if ("error" in data) {
+			return Err(data as XError);
+		} else {
+			return Ok(data as T);
+		}
+	}
 }
 
+/** {@link https://atproto.com/specs/xrpc XRPC} procedure. (HTTP POST request) */
 export async function procedure<T>(
 	{ method, service, input, headers = new Headers() }: {
 		method: string;
@@ -31,7 +49,7 @@ export async function procedure<T>(
 		headers: Headers;
 		input?: Record<string, Serializable> | Blob;
 	},
-): Promise<T | XError> {
+): Promise<Result<T | Blob, XError>> {
 	if (input instanceof Blob) {
 		headers.append("Content-Type", input.type);
 	} else {
@@ -43,9 +61,19 @@ export async function procedure<T>(
 		cache: "no-store",
 		body: input instanceof Blob ? input : JSON.stringify(input),
 	});
-	return await rsp.json();
+	if (rsp.headers.get("Content-Type") != "application/json") {
+		return Ok(await rsp.blob());
+	} else {
+		const data = await rsp.json();
+		if ("error" in data) {
+			return Err(data as XError);
+		} else {
+			return Ok(data as T);
+		}
+	}
 }
 
+/** {@link https://atproto.com/specs/xrpc XRPC} subscription. (WebSocket) */
 export function subscription({ method, service, parameters }: {
 	method: string;
 	service: URL;

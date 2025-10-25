@@ -1,13 +1,13 @@
 {
   "version": "5",
   "specifiers": {
-    "jsr:@hotsocket/dhmo@0.1": "0.1.0",
-    "jsr:@std/assert@1": "1.0.15",
+    "jsr:@hotsocket/dhmo@~0.1.1": "0.1.1",
+    "jsr:@std/assert@^1.0.15": "1.0.15",
     "jsr:@std/internal@^1.0.12": "1.0.12"
   },
   "jsr": {
-    "@hotsocket/dhmo@0.1.0": {
-      "integrity": "aaaa71af068a5aca2ed452dc20a6a0d7ae3c66a02bd6d7cd7fd2cf4437a7d111"
+    "@hotsocket/dhmo@0.1.1": {
+      "integrity": "dd3db38a5e1e7df1064e9ef3dac1b51986e4e1c86b2b45a6988a98fedb7847e8"
     },
     "@std/assert@1.0.15": {
       "integrity": "d64018e951dbdfab9777335ecdb000c0b4e3df036984083be219ce5941e4703b",
@@ -21,8 +21,8 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@hotsocket/dhmo@0.1",
-      "jsr:@std/assert@1"
+      "jsr:@hotsocket/dhmo@~0.1.1",
+      "jsr:@std/assert@^1.0.15"
     ]
   }
 }

@@ -2,15 +2,14 @@
 	"name": "@hotsocket/atproto-common",
 	"version": "0.1.0",
 	"license": "MPL-2.0",
-	"tasks": {
-		"dev": "deno run --watch main.ts"
-	},
+	"exports": "./mod.ts",
 	"imports": {
-		"@hotsocket/dhmo": "jsr:@hotsocket/dhmo@^0.1.0",
-		"@std/assert": "jsr:@std/assert@1"
+		"@hotsocket/dhmo": "jsr:@hotsocket/dhmo@^0.1.1",
+		"@std/assert": "jsr:@std/assert@^1.0.15"
 	},
 	"fmt": {
-		"useTabs": true
+		"useTabs": true,
+		"lineWidth": 120
 	},
 	"compilerOptions": {
 		"lib": [

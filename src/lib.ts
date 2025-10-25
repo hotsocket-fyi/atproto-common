@@ -1,29 +1,19 @@
-import { assert } from "@std/assert";
-import { Stringifiable } from "./types.ts";
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
 
-/** A probably-standard way of conveying errors.
+import { Err, Ok, Result } from "@hotsocket/dhmo";
+import type { Stringifiable } from "./types.ts";
+
+/** Standard format for XRPC errors.
  * @see {@link https://atproto.com/specs/xrpc#error-responses}
  */
 export type XError = {
 	error: string;
 	message?: string;
 };
-
-/** Calls assertOK on `val` and returns the value. */
-export function ensureOK<T extends object>(val: T): Exclude<T, XError> {
-	assertOK(val);
-	return val as Exclude<T, XError>;
-}
-/** Asserts that a  */
-export function assertOK<T extends object>(
-	val: T,
-): asserts val is Exclude<T, XError> {
-	const asErr = val as XError;
-	assert(
-		!("error" in val),
-		`${asErr.error}` + (asErr.message ? `: "${asErr.message}"` : ""),
-	);
-}
 
 // full:   "at://" AUTHORITY [ PATH ] [ "?" QUERY ] [ "#" FRAGMENT ]
 // actual: "at://" AUTHORITY [ "/" COLLECTION [ "/" RKEY ] ]
@@ -33,6 +23,7 @@ export class AtURI implements Stringifiable {
 	collection!: string;
 	rkey!: string;
 
+	/** Convenience method that returns a repo/collection/rkey object for certain XRPC endpoints */
 	softRef() {
 		return {
 			repo: this.authority,
@@ -42,91 +33,66 @@ export class AtURI implements Stringifiable {
 	}
 
 	private static getSerialization(
-		uri: Stringifiable,
-		base?: Stringifiable,
-	): string[] {
-		const uriString = uri.toString();
-		if (uriString!.startsWith("at://")) {
-			const parts = uriString!.split(/(\/+)/);
-			if (parts.length > 1 && parts[1] !== "//") {
-				throw new Error("Invalid URI: missing // after at:");
+		uri: string,
+		base?: string,
+	): Result<string[], string> {
+		const lower = base ?? uri;
+		const upper = base && uri;
+		const out_lowerParts = lower.split("/").filter((x) => x);
+
+		// lower length, protocol enforcement
+		if (out_lowerParts.length > 4) {
+			return Err(`Lower part count ${out_lowerParts.length} is greater than the maximum of 4`);
+		}
+		if (out_lowerParts[0] != "at:") return Err(`Bad protocol '${out_lowerParts[0]}', must be 'at:'`);
+
+		if (upper) {
+			const upperParts = upper.split("/").filter((x) => x);
+
+			// upper length enforcement, early drop-out if valid rooted
+			if (upperParts[0] == "at:") {
+				if (upperParts.length > 4) {
+					return Err(`part count > 4 in rooted upper '${upper}'`);
+				} else {
+					return Ok(upperParts);
+				}
+			} else if (upperParts.length > 2) {
+				return Err(`too many parts in upper w/o authority '${upper}'`);
 			}
-			return [parts[2]!, parts[4] ?? "", parts[6] ?? ""];
-		}
-		console.log(uriString);
 
-		if (!base) {
-			throw new Error("Relative URI without base???");
-		}
-		const baseString = base.toString()!;
-		if (!baseString.startsWith("at://")) {
-			throw new Error("must start with at://");
-		}
+			// const offset = upperParts.length - out_lowerParts.length;
+			// assert(offset > 0, `${offset}`);
 
-		// steal the built-in stuff
-		const httpBase = baseString.replace(/^at:/, "http:");
-		const resolvedUrl = new URL(uriString!, httpBase);
-
-		const { hostname, pathname } = resolvedUrl;
-
-		// literally dont care
-		const newParts = [hostname];
-		const pathSegments = pathname.split("/").filter((p) => p);
-
-		if (pathSegments.length > 0) {
-			newParts.push("/");
-			newParts.push(pathSegments[0]!);
-		}
-		if (pathSegments.length > 1) {
-			newParts.push("/");
-			newParts.push(pathSegments[1]!);
-		}
-		if (pathSegments.length > 2) {
-			throw new Error(`path too long: ${pathname}`);
-		}
-
-		return newParts;
-	}
-
-	constructor(uri: Stringifiable, base?: Stringifiable);
-	constructor(authority: string, collection: string, rkey: string);
-	constructor(
-		uriOrAuthority: Stringifiable,
-		baseOrCollection?: Stringifiable,
-		rkey?: string,
-	) {
-		if (uriOrAuthority.toString()!.startsWith("at://")) {
-			try {
-				const srz = AtURI.getSerialization(uriOrAuthority, baseOrCollection);
-				this.authority = srz[0]!;
-				this.collection = srz[1] ?? "";
-				this.rkey = srz[2] ?? "";
-			} catch (e) {
-				throw new Error(
-					`Invalid AtURI: '${uriOrAuthority}'${
-						baseOrCollection && ` with base '${baseOrCollection}'`
-					}: ${(e as Error).message}`,
-				);
-			}
-		} else {
-			this.authority = uriOrAuthority.toString()!;
-			if (baseOrCollection) {
-				const strungCollection = baseOrCollection?.toString();
-				this.collection = strungCollection ?? "";
-				this.rkey = rkey ?? "";
+			for (let i = 0; i < upperParts.length; i++) {
+				out_lowerParts[2 + i] = upperParts[i];
 			}
 		}
+
+		return Ok(out_lowerParts);
 	}
 
-	static parse(uri: Stringifiable, base?: Stringifiable): AtURI | null {
-		try {
-			return new AtURI(uri, base);
-		} catch {
-			return null;
-		}
+	constructor(authority: string, collection?: string, rkey?: string) {
+		if (!authority && collection) throw new Error("collection w/o authority");
+		if (!collection && rkey) throw new Error("rkey w/o collection");
+		this.authority = authority;
+		this.collection = collection ?? "";
+		this.rkey = rkey ?? "";
 	}
+
+	/** Creates a new instance of {@link AtURI} from a string, but returns a Result instead of throwing. */
+	static parse(uri: Stringifiable | string, base?: Stringifiable | string): Result<AtURI, string> {
+		const uas = uri.toString();
+		const bas = base?.toString();
+		const parts = this.getSerialization(
+			typeof uas == "string" ? uas : uas.okValue()!,
+			typeof bas == "string" ? bas : bas?.okValue(),
+		);
+		if (!parts.ok) return Err(parts.error);
+		return Result.from(() => new AtURI(parts.value[1], parts.value[2], parts.value[3])).mapErr((e) => e.message);
+	}
+	/** Wraps around {@link parse}, returning false if it returns an Err. */
 	static canParse(uri: Stringifiable, base?: Stringifiable): boolean {
-		return AtURI.parse(uri, base) instanceof AtURI ? true : false;
+		return AtURI.parse(uri, base).ok;
 	}
 	/**
 	 * Converts URI to at:// URI.
@@ -140,27 +106,26 @@ export class AtURI implements Stringifiable {
 	 * new AtURI("at://did:web:example.com/com.example.nsid/abc123").toString()
 	 * ```
 	 */
-	toString(): string | null {
+	toString(): Result<string, string> {
 		const ret: (string | null)[] = ["at://"];
 		// using `?? ""` to have a "bad" value to find
 		if (this.authority) {
-			ret.push(this.authority ?? "");
-		} else return ret.join("");
+			ret.push(this.authority);
+		} else return Err("no authority");
 		if (this.collection) {
-			if (ret.indexOf(null) != -1) return null;
 			ret.push("/");
 			ret.push(this.collection);
-		} else return ret.join("");
+		} else return Ok(ret.join(""));
 		if (this.rkey) {
-			if (ret.indexOf(null) != -1) return null;
 			ret.push("/");
 			ret.push(this.rkey);
 		}
-		return ret.join("");
+		return Ok(ret.join(""));
 	}
 }
 
 // named XBlob to avoid conflicts with built-in "Blob"
+/** ATProto `blob` type. */
 export type XBlob = {
 	$type: "blob";
 	ref: {
@@ -171,6 +136,9 @@ export type XBlob = {
 };
 
 const rkeyExpression = /^([A-Za-z0-9.\-_:~]{1,512})$/;
+/** Validates an rkey, and returns null if it fails.
+ * Uses RegEx from the {@link https://atproto.com/specs/record-key#record-key-syntax Record Key Syntax} spec.
+ */
 export function validateRecordKey(rkey: string): string | null {
 	const matched = rkey.match(rkeyExpression);
 	if (!matched) return null;
