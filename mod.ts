@@ -4,7 +4,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-/** Common functionality for my ATProto stack thing
+/** Common functionality and types for my ATProto stack thing
  * @module atc
  */
 
