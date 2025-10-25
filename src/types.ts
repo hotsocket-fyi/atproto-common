@@ -4,9 +4,30 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-// implementation-specific bits
+/** Types primarily used by the lexicon module and Lexiconqueror-generated code.
+ * @module types
+ */
 
 import type { Result } from "@hotsocket/dhmo";
+
+/** Standard format for XRPC errors.
+ * @see {@link https://atproto.com/specs/xrpc#error-responses}
+ */
+export type XError = {
+	error: string;
+	message?: string;
+};
+
+// named XBlob to avoid conflicts with built-in "Blob"
+/** ATProto `blob` type. */
+export type XBlob = {
+	$type: "blob";
+	ref: {
+		$link: string;
+	};
+	mimeType: string;
+	size: number;
+};
 
 /** Interface for classes with a `toString` function that returns a Result. */
 export interface Stringifiable {

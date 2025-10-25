@@ -4,6 +4,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+/** ATProto lexicon types.
+ * @module lex
+ */
+
 type TSRecord<K extends string | number | symbol, T> = globalThis.Record<K, T>;
 
 // strings are in backticks to line up with spec

@@ -7,14 +7,6 @@
 import { Err, Ok, Result } from "@hotsocket/dhmo";
 import type { Stringifiable } from "./types.ts";
 
-/** Standard format for XRPC errors.
- * @see {@link https://atproto.com/specs/xrpc#error-responses}
- */
-export type XError = {
-	error: string;
-	message?: string;
-};
-
 type SoftRef = {
 	repo: string;
 	collection: string;
@@ -130,23 +122,13 @@ export class AtURI implements Stringifiable {
 	}
 }
 
-// named XBlob to avoid conflicts with built-in "Blob"
-/** ATProto `blob` type. */
-export type XBlob = {
-	$type: "blob";
-	ref: {
-		$link: string;
-	};
-	mimeType: string;
-	size: number;
-};
-
 const rkeyExpression = /^([A-Za-z0-9.\-_:~]{1,512})$/;
 /** Validates an rkey, and returns null if it fails.
  * Uses RegEx from the {@link https://atproto.com/specs/record-key#record-key-syntax Record Key Syntax} spec.
  */
-export function validateRecordKey(rkey: string): string | null {
+export function validateRecordKey(rkey: string): Result<string, string> {
+	if (rkey == "." || rkey == "..") return Err(`Disallowed rkey '${rkey}'`);
 	const matched = rkey.match(rkeyExpression);
-	if (!matched) return null;
-	return matched[0];
+	if (!matched) return Err(`rkey '${rkey}' did not match regex`);
+	return Ok(matched[0]);
 }

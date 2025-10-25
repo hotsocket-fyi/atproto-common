@@ -4,6 +4,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+/** Common functionality for my ATProto stack thing
+ * @module atc
+ */
+
 export * from "./src/lib.ts";
 export * as lexicon from "./src/lexicon.ts";
 export * as requests from "./src/requests.ts";

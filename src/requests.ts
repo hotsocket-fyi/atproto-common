@@ -4,7 +4,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-import type { XError } from "./lib.ts";
+/** Functions to make XRPC-flavored requests/open websockets
+ * @module
+ */
+
+import type { XError } from "./types.ts";
 import type { Serializable, SerializableObject, SerializableParams } from "./types.ts";
 import { Err, Ok, type Result } from "@hotsocket/dhmo";
 
@@ -73,7 +77,10 @@ export async function procedure<T>(
 	}
 }
 
-/** {@link https://atproto.com/specs/xrpc XRPC} subscription. (WebSocket) */
+/** {@link https://atproto.com/specs/xrpc XRPC} subscription. (WebSocket)
+ *
+ * Currently returns a straight websocket. This will change.
+ */
 export function subscription({ method, service, parameters }: {
 	method: string;
 	service: URL;
