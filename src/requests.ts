@@ -13,7 +13,7 @@ import type { Serializable, SerializableObject, SerializableParams } from "./typ
 import { Err, Ok, type Result } from "@hotsocket/dhmo";
 
 /** {@link https://atproto.com/specs/xrpc XRPC} query. (HTTP GET request) */
-export async function query<T extends SerializableObject>({ method, service, parameters, headers }: {
+export async function query<T extends SerializableObject | Blob>({ method, service, parameters, headers }: {
 	method: string;
 	service: URL;
 	headers?: Headers;
