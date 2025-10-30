@@ -34,7 +34,7 @@ export async function query<T extends SerializableObject | Blob>({ method, servi
 	if (headers) opts.headers = headers;
 	const rsp = await fetch(requestURL, opts);
 	if (rsp.headers.get("Content-Type") != "application/json") {
-		return Ok(await rsp.blob());
+		return Ok(await rsp.blob()) as Result<T | Blob, XError>;
 	} else {
 		const data = await rsp.json();
 		if ("error" in (data as XError)) {
