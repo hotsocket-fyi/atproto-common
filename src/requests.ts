@@ -37,7 +37,7 @@ export async function query<T extends SerializableObject | Blob>({ method, servi
 		return Ok(await rsp.blob());
 	} else {
 		const data = await rsp.json();
-		if ("error" in data) {
+		if ("error" in (data as XError)) {
 			return Err(data as XError);
 		} else {
 			return Ok(data as T);
@@ -62,14 +62,13 @@ export async function procedure<T>(
 	const rsp = await fetch(new URL(`/xrpc/${method}`, service).toString(), {
 		method: "POST",
 		headers: headers,
-		cache: "no-store",
-		body: input instanceof Blob ? input : JSON.stringify(input),
+		body: (input instanceof Blob ? input : JSON.stringify(input)) as BodyInit,
 	});
 	if (rsp.headers.get("Content-Type") != "application/json") {
-		return Ok(await rsp.blob());
+		return Ok(await rsp.blob()) as Result<T | Blob, XError>;
 	} else {
-		const data = await rsp.json();
-		if ("error" in data) {
+		const data = await rsp.json() as T | XError;
+		if ("error" in (data as XError)) {
 			return Err(data as XError);
 		} else {
 			return Ok(data as T);
